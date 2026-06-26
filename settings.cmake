@@ -49,7 +49,7 @@ if(NOT Sel4testAllowSettingsOverride)
     set(KernelArmTLSReg tpidru CACHE STRING "" FORCE)
   endif()
 
-  if(KernelPlatformQEMUArmVirt OR KernelPlatformQEMURiscVVirt OR KernelPlatformSpike)
+  if(KernelPlatformQEMUArmVirt OR KernelPlatformQEMURiscVVirt OR KernelPlatformQEMULoongArch64Virt OR KernelPlatformSpike)
     set(SIMULATION ON CACHE BOOL "" FORCE)
   endif()
 

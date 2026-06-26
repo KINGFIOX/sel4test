@@ -27,9 +27,11 @@ static seL4_CPtr badge_endpoint(env_t env, seL4_Word badge, seL4_CPtr ep)
 static int sender(seL4_Word ep, seL4_Word id, seL4_Word runs, seL4_Word arg3)
 {
     assert(runs > 0);
+    seL4_Yield();
     for (seL4_Word i = 0; i < runs; i++) {
         seL4_MessageInfo_t info = seL4_MessageInfo_new(0, 0, 0, 0);
         seL4_Send((seL4_CPtr) ep, info);
+        seL4_Yield();
     }
 
     return 0;
@@ -56,8 +58,8 @@ static int test_notification_binding(env_t env)
     int error = seL4_TCB_BindNotification(env->tcb, notification_ep);
     test_error_eq(error, seL4_NoError);
 
-    start_helper(env, &notification, sender, badged_notification_ep, ASYNC, NUM_RUNS, 0);
     start_helper(env, &sync, sender, badged_sync_ep, SYNC, NUM_RUNS, 0);
+    start_helper(env, &notification, sender, badged_notification_ep, ASYNC, NUM_RUNS, 0);
 
     int num_notification_messages = 0;
     int num_sync_messages = 0;

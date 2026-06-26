@@ -107,9 +107,13 @@ static int test_ep_cancelBadgedSends(env_t env)
         assert(seL4_GetMR(0) == sender_badge - 100);
         seL4_SetMR(0, ~seL4_GetMR(0));
         api_reply(reply, tag);
+        seL4_Yield();
     }
     /* Let the sender threads run. */
     seL4_Call(bounce_ep, tag);
+    for (int i = 0; i < NUM_BADGED_CLIENTS; i++) {
+        seL4_Yield();
+    }
     /* Check none of the threads have failed yet. */
     for (int i = 0; i < NUM_BADGED_CLIENTS; i++) {
         assert(senders[i].done == 0);
@@ -124,6 +128,9 @@ static int test_ep_cancelBadgedSends(env_t env)
 
         /* Let thread run. */
         seL4_Call(bounce_ep, tag);
+        for (int j = 0; j < NUM_BADGED_CLIENTS; j++) {
+            seL4_Yield();
+        }
         /* Check that only the intended threads have now aborted. */
         for (int j = 0; j < NUM_BADGED_CLIENTS; j++) {
             if (j <= i) {

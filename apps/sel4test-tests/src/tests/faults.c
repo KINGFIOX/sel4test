@@ -39,7 +39,7 @@ enum {
 #define BAD_VADDR 0xf123456C
 #endif
 #elif CONFIG_WORD_SIZE == 64
-#ifdef CONFIG_ARCH_RISCV64
+#if defined(CONFIG_ARCH_RISCV64) || defined(CONFIG_ARCH_LOONGARCH64)
 #define BAD_VADDR 0x3CBA987650  /* Valid Sv39 Virtual Address */
 #else
 /* virtual address we test is in the valid 48-bit portion of the virtual address space */
@@ -106,6 +106,17 @@ do_read_fault(void)
         : [addrreg] "r"(x)
         : "a0"
     );
+#elif defined(CONFIG_ARCH_LOONGARCH)
+    asm volatile(
+        "move $a0, %[val]\n\t"
+        "read_fault_address:\n\t"
+        "ld.d $a0, %[addrreg], 0\n\t"
+        "read_fault_restart_address:\n\t"
+        "move %[val], $a0\n\t"
+        : [val] "+r"(val)
+        : [addrreg] "r"(x)
+        : "$a0"
+    );
 #elif defined(CONFIG_ARCH_X86)
     asm volatile(
         "mov %[val], %%eax\n\t"
@@ -164,6 +175,17 @@ do_write_fault(void)
         : [addrreg] "r"(x)
         : "a0"
     );
+#elif defined(CONFIG_ARCH_LOONGARCH)
+    asm volatile(
+        "move $a0, %[val]\n\t"
+        "write_fault_address:\n\t"
+        "st.d $a0, %[addrreg], 0\n\t"
+        "write_fault_restart_address:\n\t"
+        "move %[val], $a0\n\t"
+        : [val] "+r"(val)
+        : [addrreg] "r"(x)
+        : "$a0"
+    );
 #elif defined(CONFIG_ARCH_X86)
     asm volatile(
         "mov %[val], %%eax\n\t"
@@ -217,6 +239,16 @@ do_instruction_fault(void)
         : [val] "+r"(val)
         : [addrreg] "r"(x)
         : "a0", "ra"
+    );
+#elif defined(CONFIG_ARCH_LOONGARCH)
+    asm volatile(
+        "move $a0, %[val]\n\t"
+        "jirl $ra, %[addrreg], 0\n\t"
+        "instruction_fault_restart_address:\n\t"
+        "move %[val], $a0\n\t"
+        : [val] "+r"(val)
+        : [addrreg] "r"(x)
+        : "$a0", "$ra"
     );
 #elif defined(CONFIG_ARCH_X86)
     asm volatile(
@@ -281,6 +313,19 @@ do_bad_syscall(void)
         : [addrreg] "r"(x),
         [scno] "i"(BAD_SYSCALL_NUMBER)
         : "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "memory", "cc"
+    );
+#elif defined(CONFIG_ARCH_LOONGARCH)
+    asm volatile(
+        "li.d $a7, %[scno]\n\t"
+        "move $a0, %[val]\n\t"
+        "bad_syscall_address:\n\t"
+        "syscall 0\n\t"
+        "bad_syscall_restart_address:\n\t"
+        "move %[val], $a0\n\t"
+        : [val] "+r"(val)
+        : [addrreg] "r"(x),
+        [scno] "i"(BAD_SYSCALL_NUMBER)
+        : "$a0", "$a1", "$a2", "$a3", "$a4", "$a5", "$a6", "$a7", "memory", "cc"
     );
 #elif defined(CONFIG_ARCH_X86_64) && defined(CONFIG_SYSENTER)
     asm volatile(
@@ -408,6 +453,19 @@ do_bad_instruction(void)
         [valptr] "r"(&val)
         : "a0", "memory"
     );
+#elif defined(CONFIG_ARCH_LOONGARCH)
+    asm volatile(
+        "move $a0, $sp\n\t"
+        "st.d $a0, %[sp], 0\n\t"
+        "move $sp, %[valptr]\n\t"
+        "bad_instruction_address:\n\t"
+        ".word 0xffffffff\n\t"
+        "bad_instruction_restart_address:\n\t"
+        :
+        : [sp] "r"(&bad_instruction_sp),
+        [valptr] "r"(&val)
+        : "$a0", "memory"
+    );
 #elif defined(CONFIG_ARCH_X86_64)
     asm volatile(
         /* save RSP */
@@ -474,6 +532,10 @@ set_good_magic_and_set_pc(seL4_CPtr tcb, seL4_Word new_pc)
     ctx.x0 = GOOD_MAGIC;
     ctx.pc = new_pc;
 #elif defined(CONFIG_ARCH_RISCV)
+    test_check((int)ctx.a0 == BAD_MAGIC);
+    ctx.a0 = GOOD_MAGIC;
+    ctx.pc = new_pc;
+#elif defined(CONFIG_ARCH_LOONGARCH)
     test_check((int)ctx.a0 == BAD_MAGIC);
     ctx.a0 = GOOD_MAGIC;
     ctx.pc = new_pc;
@@ -553,8 +615,8 @@ static int handle_fault(seL4_CPtr fault_ep, seL4_CPtr tcb, seL4_Word expected_fa
         test_check(seL4_MessageInfo_get_length(tag) == seL4_VMFault_Length);
         test_check(seL4_GetMR(seL4_VMFault_IP) == BAD_VADDR);
         test_check(seL4_GetMR(seL4_VMFault_Addr) == BAD_VADDR);
-#if defined(CONFIG_ARCH_ARM) || defined(CONFIG_ARCH_RISCV)
-        /* Prefetch fault is only set on ARM and RISCV. */
+#if defined(CONFIG_ARCH_ARM) || defined(CONFIG_ARCH_RISCV) || defined(CONFIG_ARCH_LOONGARCH)
+        /* Prefetch fault is set on ARM, RISCV, and LoongArch. */
         test_check(seL4_GetMR(seL4_VMFault_PrefetchFault) == 1);
 #endif
         test_check(sel4utils_is_read_fault());
@@ -585,6 +647,11 @@ static int handle_fault(seL4_CPtr fault_ep, seL4_CPtr tcb, seL4_Word expected_fa
         test_eq(seL4_GetMR(seL4_UnknownSyscall_FaultIP), (seL4_Word) bad_syscall_restart_address);
         seL4_SetMR(seL4_UnknownSyscall_RBX, GOOD_MAGIC);
 #elif defined(CONFIG_ARCH_RISCV)
+        test_eq((int)seL4_GetMR(seL4_UnknownSyscall_A0), BAD_MAGIC);
+        test_eq(seL4_GetMR(seL4_UnknownSyscall_FaultIP), (seL4_Word) bad_syscall_restart_address);
+        seL4_SetMR(seL4_UnknownSyscall_A0, GOOD_MAGIC);
+        seL4_SetMR(seL4_UnknownSyscall_FaultIP, (seL4_Word)bad_syscall_restart_address);
+#elif defined(CONFIG_ARCH_LOONGARCH)
         test_eq((int)seL4_GetMR(seL4_UnknownSyscall_A0), BAD_MAGIC);
         test_eq(seL4_GetMR(seL4_UnknownSyscall_FaultIP), (seL4_Word) bad_syscall_restart_address);
         seL4_SetMR(seL4_UnknownSyscall_A0, GOOD_MAGIC);
@@ -624,6 +691,9 @@ static int handle_fault(seL4_CPtr fault_ep, seL4_CPtr tcb, seL4_Word expected_fa
         test_check(seL4_GetMR(3) == 0x02000000);
         test_check(seL4_GetMR(4) == 0);
 #elif defined(CONFIG_ARCH_RISCV)
+        test_check(seL4_GetMR(2) == 2);
+        test_check(seL4_GetMR(3) == 0);
+#elif defined(CONFIG_ARCH_LOONGARCH)
         test_check(seL4_GetMR(2) == 2);
         test_check(seL4_GetMR(3) == 0);
 #elif defined(CONFIG_ARCH_X86)
@@ -761,10 +831,12 @@ static int test_fault(env_t env, int fault_type, bool inter_as)
                                         (restart ? BIT(RESTART) : 0);
             for (int prio = 100; prio <= 102; prio++) {
                 set_helper_priority(env, &faulter_thread, prio);
-                start_helper(env, &handler_thread, (helper_fn_t) handle_fault,
-                             handler_arg0, handler_arg1, fault_type, flags_and_reply);
                 start_helper(env, &faulter_thread, (helper_fn_t) cause_fault,
                              fault_type, 0, 0, 0);
+                seL4_Yield();
+                start_helper(env, &handler_thread, (helper_fn_t) handle_fault,
+                             handler_arg0, handler_arg1, fault_type, flags_and_reply);
+                seL4_Yield();
                 wait_for_helper(&handler_thread);
 
                 if (restart) {

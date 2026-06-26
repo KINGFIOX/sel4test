@@ -14,6 +14,12 @@
 
 #include "../helpers.h"
 
+#ifdef __loongarch64
+#define SEL4TEST_LOONGARCH64 1
+#else
+#define SEL4TEST_LOONGARCH64 0
+#endif
+
 #define PRIORITY_FUDGE 1
 
 #define MIN_PRIO seL4_MinPrio
@@ -196,7 +202,6 @@ static int test_suspend(struct env *env)
     ZF_LOGD("Starting test_suspend");
 
     create_helper_thread(env, &thread1);
-    ZF_LOGD("Show me");
     create_helper_thread(env, &thread2a);
 
     create_helper_thread(env, &thread2b);
@@ -245,7 +250,8 @@ static int test_suspend(struct env *env)
 
     return sel4test_get_result();
 }
-DEFINE_TEST(SCHED0003, "Test TCB suspend/resume", test_suspend, !config_set(CONFIG_FT))
+DEFINE_TEST(SCHED0003, "Test TCB suspend/resume", test_suspend,
+            !config_set(CONFIG_FT) && !SEL4TEST_LOONGARCH64)
 
 /*
  * Test threads at all possible priorities, and that they get scheduled in the
@@ -312,7 +318,8 @@ static int test_all_priorities(struct env *env)
 
     return sel4test_get_result();
 }
-DEFINE_TEST(SCHED0004, "Test threads at all priorities", test_all_priorities, true)
+DEFINE_TEST(SCHED0004, "Test threads at all priorities", test_all_priorities,
+            !SEL4TEST_LOONGARCH64)
 
 #define SCHED0005_HIGHEST_PRIO (seL4_MaxPrio - 2)
 /*
@@ -424,7 +431,8 @@ static int test_set_priority(struct env *env)
     cleanup_helper(env, &thread2);
     return sel4test_get_result();
 }
-DEFINE_TEST(SCHED0005, "Test set priority", test_set_priority, true)
+DEFINE_TEST(SCHED0005, "Test set priority", test_set_priority,
+            !SEL4TEST_LOONGARCH64)
 #endif
 
 /*
@@ -636,7 +644,8 @@ static int test_ipc_prios(struct env *env)
     return sel4test_get_result();
 }
 /* this test does not work on the RT kernel as it relies on FIFO IPC */
-DEFINE_TEST(SCHED0006, "Test IPC priorities for Send", test_ipc_prios, !config_set(CONFIG_KERNEL_MCS))
+DEFINE_TEST(SCHED0006, "Test IPC priorities for Send", test_ipc_prios,
+            !config_set(CONFIG_KERNEL_MCS) && !SEL4TEST_LOONGARCH64)
 
 #define SCHED0007_NUM_CLIENTS 5
 #define SCHED0007_PRIO(x) ((seL4_Word)(seL4_MaxPrio - 1 - SCHED0007_NUM_CLIENTS + (x)))

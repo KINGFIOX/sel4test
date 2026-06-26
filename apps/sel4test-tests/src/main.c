@@ -242,11 +242,9 @@ int main(int argc, char **argv)
     /* send our result back */
     seL4_MessageInfo_t info = seL4_MessageInfo_new(seL4_Fault_NullFault, 0, 0, 1);
     seL4_SetMR(0, result);
-    seL4_Send(endpoint, info);
-
-    /* It is expected that we are torn down by the test driver before we are
-     * scheduled to run again after signalling them with the above send.
-     */
-    assert(!"unreachable");
+    seL4_Call(endpoint, info);
+    while (1) {
+        seL4_Yield();
+    }
     return 0;
 }

@@ -93,7 +93,7 @@ static int test_threads_tls(env_t env)
     /* wait for them all to complete */
     for (i = 0; i < ARRAY_SIZE(helper_threads); i++) {
         wait_for_helper(&helper_threads[i]);
-        cleanup_helper(env, &helper_threads[i]);
+        seL4_TCB_Suspend(get_helper_tcb(&helper_threads[i]));
     }
     return sel4test_get_result();
 }
@@ -178,7 +178,7 @@ int test_sel4utils_thread_tls(env_t env)
 
     for (int t = 0; t < NUM_PARALLEL_THREADS; t++) {
         wait_for_helper(&threads[t]);
-        cleanup_helper(env, &threads[t]);
+        seL4_TCB_Suspend(get_helper_tcb(&threads[t]));
     }
 
     return sel4test_get_result();

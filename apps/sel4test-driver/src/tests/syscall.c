@@ -180,7 +180,7 @@
         test_assert(a06 == 0xdead0006); \
         test_assert(a07 == 0xdead0007); \
     } while (0)
-#elif defined(CONFIG_ARCH_RISCV)
+#elif defined(CONFIG_ARCH_RISCV) || defined(CONFIG_ARCH_LOONGARCH)
 #define TEST_MRS 0, 0, 0, 0
 #define TEST_REGISTERS(code)                    \
     do {                                        \

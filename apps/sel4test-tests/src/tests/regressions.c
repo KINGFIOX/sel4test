@@ -183,6 +183,21 @@ int test_write_registers(env_t env)
     /* This is an ABI requirment */
     extern char __global_pointer$[];
     context.gp = (seL4_Word) __global_pointer$;
+#elif defined(CONFIG_ARCH_LOONGARCH)
+    context.pc = (seL4_Word)&test_registers;
+    context.ra = 1;
+    context.sp = 2;
+    context.t0 = 4;
+    context.t1 = 5;
+    context.t2 = 6;
+    context.s0 = 7;
+    context.s1 = 8;
+    context.a1 = 10;
+    context.a2 = 11;
+    context.a3 = 12;
+    context.a4 = 13;
+    context.a5 = 14;
+    context.a6 = 15;
 #else
 #error "Unsupported architecture"
 #endif

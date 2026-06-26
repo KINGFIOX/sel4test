@@ -275,19 +275,61 @@ test_registers:
 test_registers_fail:
     movl $1, %eax
     jmp reply_trampoline
-#elif defined(CONFIG_ARCH_RISCV)
+#elif defined(CONFIG_ARCH_RISCV) || defined(CONFIG_ARCH_LOONGARCH)
 /* Trampoline for providing the thread a valid stack before entering
- * reply_to_parent. No jal required because reply_to_parent does not
+ * reply_to_parent. No call required because reply_to_parent does not
  * return.
  */
 reply_trampoline:
+#if defined(CONFIG_ARCH_LOONGARCH)
+    la.local $a1, _safe_stack
+    move $sp, $a1
+    la.local $t0, reply_to_parent
+    jirl $zero, $t0, 0
+#else
     la a1, _safe_stack
     mv sp, a1
     j reply_to_parent
+#endif
 
 .global test_registers
 test_registers:
 
+#if defined(CONFIG_ARCH_LOONGARCH)
+    li.d $a0, 1
+    bne $ra, $a0, test_registers_fail
+    li.d $a0, 2
+    bne $sp, $a0, test_registers_fail
+    li.d $a0, 4
+    bne $t0, $a0, test_registers_fail
+    li.d $a0, 5
+    bne $t1, $a0, test_registers_fail
+    li.d $a0, 6
+    bne $t2, $a0, test_registers_fail
+    li.d $a0, 7
+    bne $s0, $a0, test_registers_fail
+    li.d $a0, 8
+    bne $s1, $a0, test_registers_fail
+    li.d $a0, 10
+    bne $a1, $a0, test_registers_fail
+    li.d $a0, 11
+    bne $a2, $a0, test_registers_fail
+    li.d $a0, 12
+    bne $a0, $a3, test_registers_fail
+    li.d $a0, 13
+    bne $a0, $a4, test_registers_fail
+    li.d $a0, 14
+    bne $a0, $a5, test_registers_fail
+    li.d $a0, 15
+    bne $a0, $a6, test_registers_fail
+
+    move $a0, $zero
+    b reply_trampoline
+
+test_registers_fail:
+    li.d $a0, 1
+    b reply_trampoline
+#else
     li a0, 1
     bne ra, a0, test_registers_fail
     li a0, 2
@@ -329,8 +371,8 @@ test_registers:
 test_registers_fail:
     li a0, 1
     j reply_trampoline
+#endif
 
 #else
 #error Unsupported architecture
 #endif
-

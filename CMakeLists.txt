@@ -20,7 +20,7 @@ set(KernelRootCNodeSizeBits 13 CACHE INTERNAL "")
 
 sel4_import_kernel()
 
-if((NOT Sel4testAllowSettingsOverride) AND (KernelArchARM OR KernelArchRiscV))
+if((NOT Sel4testAllowSettingsOverride) AND (KernelArchARM OR KernelArchRiscV OR KernelArchLoongArch))
   # Elfloader settings that correspond to how Data61 sets its boards up.
   ApplyData61ElfLoaderSettings(${KernelPlatform} ${KernelSel4Arch})
 endif()

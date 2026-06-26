@@ -284,6 +284,7 @@ test_result_t basic_run_test(struct testcase *test, uintptr_t e)
     error = sel4utils_spawn_process_v(&(env->test_process), &env->vka, &env->vspace,
                                       argc, argv, 1);
     ZF_LOGF_IF(error != 0, "Failed to start test process!");
+    seL4_Yield();
 
     if (config_set(CONFIG_HAVE_TIMER)) {
         error = tm_alloc_id_at(&env->tm, TIMER_ID);
@@ -301,6 +302,9 @@ test_result_t basic_run_test(struct testcase *test, uintptr_t e)
 void basic_tear_down(uintptr_t e)
 {
     driver_env_t env = (driver_env_t)e;
+
+    seL4_TCB_Suspend(env->test_process.thread.tcb.cptr);
+
     /* unmap the env->init data frame */
     vspace_unmap_pages(&(env->test_process).vspace, env->remote_vaddr, 1, PAGE_BITS_4K, NULL);
 
@@ -316,4 +320,3 @@ void basic_tear_down(uintptr_t e)
 }
 
 DEFINE_TEST_TYPE(BASIC, BASIC, NULL, NULL, basic_set_up, basic_tear_down, basic_run_test);
-

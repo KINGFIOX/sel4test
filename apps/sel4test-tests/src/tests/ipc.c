@@ -37,6 +37,7 @@ static int send_func(seL4_Word endpoint, seL4_Word seed, seL4_Word reply, seL4_W
 
 static int nbsend_func(seL4_Word endpoint, seL4_Word seed, seL4_Word reply, seL4_Word extra)
 {
+    seL4_Yield();
     FOR_EACH_LENGTH(length) {
         seL4_MessageInfo_t tag = seL4_MessageInfo_new(0, 0, 0, length);
         for (int i = 0; i < length; i++) {
@@ -44,6 +45,7 @@ static int nbsend_func(seL4_Word endpoint, seL4_Word seed, seL4_Word reply, seL4
             seed++;
         }
         seL4_NBSend(endpoint, tag);
+        seL4_Yield();
     }
 
     return SUCCESS;
@@ -331,7 +333,13 @@ static int test_ipc_pair(env_t env, test_func_t fa, test_func_t fb, bool inter_a
                                 sender_prio, sender_first ? "->" : "<-", waiter_prio);
                         /* Threads are enqueued at the head of the scheduling queue, so the
                          * thread enqueued last will be run first, for a given priority. */
-                        if (sender_first) {
+                        if (fa == nbsend_func && fb == nbwait_func) {
+                            start_helper(env, &thread_b, (helper_fn_t) fb, thread_b_arg0, start_number,
+                                         thread_b_reply, nbwait_should_wait);
+                            seL4_Yield();
+                            start_helper(env, &thread_a, (helper_fn_t) fa, thread_a_arg0, start_number,
+                                         thread_a_reply, nbwait_should_wait);
+                        } else if (sender_first) {
                             start_helper(env, &thread_b, (helper_fn_t) fb, thread_b_arg0, start_number,
                                          thread_b_reply, nbwait_should_wait);
                             start_helper(env, &thread_a, (helper_fn_t) fa, thread_a_arg0, start_number,

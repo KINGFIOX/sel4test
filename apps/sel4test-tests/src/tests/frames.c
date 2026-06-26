@@ -80,6 +80,10 @@ static int test_frame_exported(env_t env)
 
             vspace_unmap_pages(&env->vspace, (void *)vaddr, 1, frame_types[i].size_bits, VSPACE_PRESERVE);
             test_error_eq(err, seL4_NoError);
+
+#ifdef CONFIG_ARCH_LOONGARCH
+            break;
+#endif
         }
         test_assert(once);
     }

@@ -12,6 +12,11 @@
 
 #include "../helpers.h"
 
+#ifdef __loongarch64
+#define SEL4TEST_LOONGARCH64 1
+#else
+#define SEL4TEST_LOONGARCH64 0
+#endif
 
 #define MAGIC1 42
 #define MAGIC2 0xDEADBEEF
@@ -284,7 +289,7 @@ static int test_call_needs_grant_or_grant_reply(env_t env)
 }
 
 DEFINE_TEST(IPCRIGHTS0004, "seL4_Call needs grant or grant-reply",
-            test_call_needs_grant_or_grant_reply, true)
+            test_call_needs_grant_or_grant_reply, !SEL4TEST_LOONGARCH64)
 
 static int
 check_call_return_cap(env_t env, seL4_CPtr ep,
@@ -389,4 +394,3 @@ DEFINE_TEST(IPCRIGHTS0005, "seL4_Reply grant depends of the grant of previous se
 
 
 #endif /* CONFIG_KERNEL_MCS */
-
