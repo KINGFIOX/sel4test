@@ -289,7 +289,7 @@ static int test_call_needs_grant_or_grant_reply(env_t env)
 }
 
 DEFINE_TEST(IPCRIGHTS0004, "seL4_Call needs grant or grant-reply",
-            test_call_needs_grant_or_grant_reply, !SEL4TEST_LOONGARCH64)
+            test_call_needs_grant_or_grant_reply, true)
 
 static int
 check_call_return_cap(env_t env, seL4_CPtr ep,
