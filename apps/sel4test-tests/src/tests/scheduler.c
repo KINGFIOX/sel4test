@@ -14,12 +14,6 @@
 
 #include "../helpers.h"
 
-#ifdef __loongarch64
-#define SEL4TEST_LOONGARCH64 1
-#else
-#define SEL4TEST_LOONGARCH64 0
-#endif
-
 #define PRIORITY_FUDGE 1
 
 #define MIN_PRIO seL4_MinPrio
@@ -251,7 +245,7 @@ static int test_suspend(struct env *env)
     return sel4test_get_result();
 }
 DEFINE_TEST(SCHED0003, "Test TCB suspend/resume", test_suspend,
-            !config_set(CONFIG_FT) && !SEL4TEST_LOONGARCH64)
+            !config_set(CONFIG_FT) && REL4_HAS_PRIORITY_SCHEDULING && REL4_HAS_TIMER_PREEMPTION)
 
 /*
  * Test threads at all possible priorities, and that they get scheduled in the
@@ -319,7 +313,7 @@ static int test_all_priorities(struct env *env)
     return sel4test_get_result();
 }
 DEFINE_TEST(SCHED0004, "Test threads at all priorities", test_all_priorities,
-            !SEL4TEST_LOONGARCH64)
+            REL4_HAS_PRIORITY_SCHEDULING)
 
 #define SCHED0005_HIGHEST_PRIO (seL4_MaxPrio - 2)
 /*
@@ -432,7 +426,7 @@ static int test_set_priority(struct env *env)
     return sel4test_get_result();
 }
 DEFINE_TEST(SCHED0005, "Test set priority", test_set_priority,
-            !SEL4TEST_LOONGARCH64)
+            REL4_HAS_PRIORITY_SCHEDULING)
 #endif
 
 /*
@@ -645,7 +639,7 @@ static int test_ipc_prios(struct env *env)
 }
 /* this test does not work on the RT kernel as it relies on FIFO IPC */
 DEFINE_TEST(SCHED0006, "Test IPC priorities for Send", test_ipc_prios,
-            !config_set(CONFIG_KERNEL_MCS) && !SEL4TEST_LOONGARCH64)
+            !config_set(CONFIG_KERNEL_MCS) && REL4_HAS_PRIORITY_SCHEDULING)
 
 #define SCHED0007_NUM_CLIENTS 5
 #define SCHED0007_PRIO(x) ((seL4_Word)(seL4_MaxPrio - 1 - SCHED0007_NUM_CLIENTS + (x)))
@@ -1485,7 +1479,8 @@ static int test_set_higher_prio(struct env *env)
 
     return sel4test_get_result();
 }
-DEFINE_TEST(SCHED0020, "test set prio to a higher prio runs higher prio thread", test_set_higher_prio, true);
+DEFINE_TEST(SCHED0020, "test set prio to a higher prio runs higher prio thread", test_set_higher_prio,
+            REL4_HAS_PRIORITY_SCHEDULING);
 
 #define PREEMPTION_THREADS 4
 
@@ -1646,7 +1641,7 @@ static int test_simple_preempt(struct env *env)
 /* This test is flaky under simulation. Probably a race condition that only
    comes out under simulator timing conditions. See also #42  */
 DEFINE_TEST(SCHED0021, "Test for pre-emption during running of many threads with equal prio", test_simple_preempt,
-            !config_set(CONFIG_SIMULATION));
+            !config_set(CONFIG_SIMULATION) && REL4_HAS_TIMER_PREEMPTION);
 
 int sched0022_to_fn(struct env *env, helper_thread_t *thread, seL4_CPtr ep)
 {

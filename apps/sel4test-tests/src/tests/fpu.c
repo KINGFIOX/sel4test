@@ -9,12 +9,6 @@
 
 #include "../helpers.h"
 
-#ifdef __loongarch64
-#define SEL4TEST_LOONGARCH64 1
-#else
-#define SEL4TEST_LOONGARCH64 0
-#endif
-
 static double fpu_calculation(void)
 {
     double a = (double)3.141;
@@ -132,7 +126,7 @@ static int test_fpu_multithreaded(struct env *env)
     return sel4test_get_result();
 }
 DEFINE_TEST(FPU0001, "Ensure multiple threads can use FPU simultaneously", test_fpu_multithreaded,
-            !config_set(CONFIG_FT) && !SEL4TEST_LOONGARCH64)
+            !config_set(CONFIG_FT) && REL4_HAS_TIMER_PREEMPTION)
 
 static int
 smp_fpu_worker(volatile seL4_Word *ex, volatile seL4_Word *run)
